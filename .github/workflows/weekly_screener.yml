@@ -2,9 +2,8 @@ name: Weekly Financial Screener
 
 on:
   schedule:
-    # Runs automatically every Monday at 00:00 UTC (08:00 AM HKT)
     - cron: '0 0 * * 1'
-  workflow_dispatch: # Allows you to manually trigger a test run anytime from GitHub
+  workflow_dispatch: 
 
 jobs:
   run-screener:
@@ -12,10 +11,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7  # Updated to latest version supporting Node 24
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7  # Updated to latest version supporting Node 24
         with:
           python-version: '3.11'
 
