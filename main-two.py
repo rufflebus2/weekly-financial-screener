@@ -42,28 +42,49 @@ load_dotenv()
 
 ET_TZ = ZoneInfo("America/New_York")
 
-# --- Configuration & Secrets (pulled from environment) ---
+# --- Configuration & Secrets (pulled from environment) -------------------------
+# GitHub Actions renders an undefined ${{ vars.X }} / missing secret as an EMPTY
+# string, so plain os.getenv(name, default) returns "" (not the default) and
+# float("") crashes. These helpers treat "" as unset and fall back safely.
+
+
+def env_str(name: str, default: str = "") -> str:
+    value = (os.getenv(name) or "").strip()
+    return value or default
+
+
+def env_float(name: str, default: float) -> float:
+    value = (os.getenv(name) or "").strip().replace(",", "")
+    if not value:
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        print(f"Warning: {name}={value!r} is not a number; using default {default}.")
+        return default
+
+
 WATCHLIST = [
     t.strip().upper()
-    for t in os.getenv("WATCHLIST", "NVDA").split(",")
+    for t in env_str("WATCHLIST", "NVDA").split(",")
     if t.strip()
 ]
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+GEMINI_MODEL = env_str("GEMINI_MODEL", "gemini-3.6-flash")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-# --- Auth: Vertex AI (GCP service account) or Gemini API key -----------------
+# --- Auth: Vertex AI (GCP service account) or Gemini API key --------------------
 # Hong Kong (and other regions outside the AI Studio list) must use Vertex AI
 # with a service account; the API-key path only works in supported regions.
 # See https://ai.google.dev/gemini-api/docs/available-regions
-GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
-GCP_LOCATION = os.getenv("GCP_LOCATION", "us-central1")
+GCP_PROJECT_ID = env_str("GCP_PROJECT_ID")
+GCP_LOCATION = env_str("GCP_LOCATION", "us-central1")
 
 # Position sizing (USD). ACCOUNT_SIZE=0 disables the sizing block in the alert.
-ACCOUNT_SIZE = float(os.getenv("ACCOUNT_SIZE", "0") or 0)
-RISK_PER_TRADE_PCT = float(os.getenv("RISK_PER_TRADE_PCT", "1.0"))  # % of account risked per trade
-MAX_POSITION_PCT = float(os.getenv("MAX_POSITION_PCT", "25.0"))     # max % of account in one position
+ACCOUNT_SIZE = env_float("ACCOUNT_SIZE", 0.0)
+RISK_PER_TRADE_PCT = env_float("RISK_PER_TRADE_PCT", 1.0)  # % of account risked per trade
+MAX_POSITION_PCT = env_float("MAX_POSITION_PCT", 25.0)     # max % of account in one position
 
 MIN_REWARD_RISK = 1.5          # minimum (target-entry)/(entry-stop) for a BUY
 MIN_BUY_CONFIDENCE = 60        # a BUY below this confidence is invalid
