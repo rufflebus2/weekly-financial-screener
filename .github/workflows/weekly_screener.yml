@@ -1,0 +1,37 @@
+name: Weekly Financial Screener
+
+on:
+  schedule:
+    # Runs automatically every Monday at 00:00 UTC (08:00 AM HKT)
+    - cron: '0 0 * * 1'
+  workflow_dispatch: # Allows you to manually trigger a test run anytime from GitHub
+
+jobs:
+  run-screener:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Recreate GCP Service Account Key File securely
+        run: echo '${{ secrets.GCP_SA_KEY }}' > service-account.key.json
+
+      - name: Run Screener Script
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: service-account.key.json
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_LOCATION: "asia-southeast1"
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python screener.py
